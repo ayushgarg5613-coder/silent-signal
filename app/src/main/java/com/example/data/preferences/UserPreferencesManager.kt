@@ -14,6 +14,10 @@ data class SafetySettings(
     val voiceCommandEnabled: Boolean = true,
     val voiceKeyword: String = "CODE RED",
     val wearableSimEnabled: Boolean = true,
+    val smsDispatchEnabled: Boolean = true,
+    val locationTrackingEnabled: Boolean = true,
+    val callEscalationEnabled: Boolean = true,
+    val audioTriggerEnabled: Boolean = true,
     val stealthModeEnabled: Boolean = false,
     val stealthDarkModeEnabled: Boolean = false,
     val autoStealthOnEmergency: Boolean = true,
@@ -41,6 +45,10 @@ class UserPreferencesManager(context: Context) {
             voiceCommandEnabled = prefs.getBoolean("voiceCommandEnabled", true),
             voiceKeyword = prefs.getString("voiceKeyword", "CODE RED") ?: "CODE RED",
             wearableSimEnabled = prefs.getBoolean("wearableSimEnabled", true),
+            smsDispatchEnabled = prefs.getBoolean("smsDispatchEnabled", true),
+            locationTrackingEnabled = prefs.getBoolean("locationTrackingEnabled", true),
+            callEscalationEnabled = prefs.getBoolean("callEscalationEnabled", true),
+            audioTriggerEnabled = prefs.getBoolean("audioTriggerEnabled", true),
             stealthModeEnabled = prefs.getBoolean("stealthModeEnabled", false),
             stealthDarkModeEnabled = prefs.getBoolean("stealthDarkModeEnabled", false),
             autoStealthOnEmergency = prefs.getBoolean("autoStealthOnEmergency", true),
@@ -63,6 +71,10 @@ class UserPreferencesManager(context: Context) {
             putBoolean("voiceCommandEnabled", newSettings.voiceCommandEnabled)
             putString("voiceKeyword", newSettings.voiceKeyword)
             putBoolean("wearableSimEnabled", newSettings.wearableSimEnabled)
+            putBoolean("smsDispatchEnabled", newSettings.smsDispatchEnabled)
+            putBoolean("locationTrackingEnabled", newSettings.locationTrackingEnabled)
+            putBoolean("callEscalationEnabled", newSettings.callEscalationEnabled)
+            putBoolean("audioTriggerEnabled", newSettings.audioTriggerEnabled)
             putBoolean("stealthModeEnabled", newSettings.stealthModeEnabled)
             putBoolean("stealthDarkModeEnabled", newSettings.stealthDarkModeEnabled)
             putBoolean("autoStealthOnEmergency", newSettings.autoStealthOnEmergency)

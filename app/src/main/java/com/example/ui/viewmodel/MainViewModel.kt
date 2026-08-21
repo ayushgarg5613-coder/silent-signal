@@ -5,9 +5,12 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.UserSession
+import com.example.UserSessionStore
 import com.example.data.db.AlertLog
 import com.example.data.db.AppDatabase
 import com.example.data.db.EmergencyContact
+import com.example.data.db.UserAccount
 import com.example.data.preferences.SafetySettings
 import com.example.data.preferences.UserPreferencesManager
 import com.example.emergency.EmergencyDispatcher
@@ -21,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -30,9 +34,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
     private val contactDao = db.contactDao()
     private val alertDao = db.alertDao()
+    private val userAccountDao = db.userAccountDao()
     private val prefsManager = UserPreferencesManager(application)
     private val authManager = AuthManager(application)
-    val dispatcher = EmergencyDispatcher(application, contactDao, alertDao)
+    private val sessionStore = UserSessionStore(application)
+    val dispatcher = EmergencyDispatcher(application, contactDao, alertDao, sessionStore)
     private val voiceTriggerManager = VoiceTriggerManager(application) { recognizedPhrase ->
         if (safetySettings.value.voiceCommandEnabled && activeCountdownSec.value == null) {
             _lastHeardVoicePhrase.value = recognizedPhrase
@@ -50,11 +56,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = emptyList()
     )
 
-    val alertLogs = alertDao.getAllAlerts().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    private val _currentUserSession = MutableStateFlow(sessionStore.loadSession())
+    val currentUserSession: StateFlow<UserSession> = _currentUserSession.asStateFlow()
+
+    val alertLogs = _currentUserSession
+        .combine(
+            alertDao.getAllAlerts()
+        ) { session, logs ->
+            if (session.accountId == 0L) emptyList() else logs.filter { it.accountId == session.accountId }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     val safetySettings = prefsManager.settings
     val authState = authManager.authState
@@ -91,6 +106,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var countdownJob: Job? = null
 
+    private fun getCurrentAccountId(): Long = _currentUserSession.value.accountId
+
     // Shake Detector setup
     private val shakeDetector = ShakeDetector(
         context = application,
@@ -117,34 +134,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     init {
-        // Populate default sample contact if list is empty
-        viewModelScope.launch {
-            db.contactDao().getAllContacts().collect { list ->
-                if (list.isEmpty()) {
-                    db.contactDao().insertContact(
-                        EmergencyContact(
-                            name = "Primary Guardian (Mom)",
-                            phoneNumber = "+15550192834",
-                            relationship = "Parent / Guardian",
-                            isPrimary = true,
-                            escalationTier = 1,
-                            customNote = "SILENT SIGNAL SOS: I need silent help at my location!"
-                        )
-                    )
-                    db.contactDao().insertContact(
-                        EmergencyContact(
-                            name = "Campus Security / Buddy",
-                            phoneNumber = "+15550148821",
-                            relationship = "Trusted Friend",
-                            isPrimary = false,
-                            escalationTier = 2,
-                            customNote = "URGENT SAFETY ALERT: Location link attached below."
-                        )
-                    )
-                }
-            }
-        }
-
         if (safetySettings.value.shakeEnabled) {
             shakeDetector.start()
         }
@@ -178,6 +167,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun saveSessionFromLogin(account: UserAccount, rememberMe: Boolean) {
+        val session = UserSession(
+            accountId = account.id,
+            loginId = account.loginId,
+            displayName = account.displayName,
+            username = account.username,
+            email = account.email,
+            phoneNumber = account.phoneNumber,
+            rememberMe = rememberMe,
+            lastAlertHistoryCount = 0
+        )
+        sessionStore.saveSession(session)
+        _currentUserSession.value = session
+    }
+
     private fun startCountdown(triggerType: String, intensity: Float, totalSec: Int) {
         countdownJob?.cancel()
         _activeCountdownTriggerType.value = triggerType
@@ -206,7 +210,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val alert = dispatcher.dispatchAlert(
                 triggerType = triggerType,
                 movementIntensity = intensity,
-                customNote = safetySettings.value.customEmergencyMessage
+                customNote = safetySettings.value.customEmergencyMessage,
+                accountId = getCurrentAccountId()
             )
             _lastDispatchedAlert.value = alert
         }
@@ -238,7 +243,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearAlertHistory() {
         viewModelScope.launch {
-            alertDao.clearAllAlerts()
+            alertDao.clearAlertsForAccount(getCurrentAccountId())
             _lastDispatchedAlert.value = null
         }
     }
@@ -288,7 +293,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun signIn(identifier: String, password: String, rememberMe: Boolean): Result<Unit> {
-        return authManager.signIn(identifier, password, rememberMe)
+        val authResult = authManager.signIn(identifier, password, rememberMe)
+        if (authResult.isFailure) {
+            return authResult
+        }
+
+        viewModelScope.launch {
+            val account = userAccountDao.findByLoginId(identifier.trim().lowercase())
+                ?: userAccountDao.findByEmail(identifier.trim().lowercase())
+            if (account != null) {
+                saveSessionFromLogin(account, rememberMe)
+                if (stealthModeActive.value) {
+                    toggleStealthMode(false)
+                }
+            }
+        }
+
+        return Result.success(Unit)
     }
 
     fun signUp(
@@ -299,7 +320,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         password: String,
         rememberMe: Boolean
     ): Result<Unit> {
-        return authManager.signUp(fullName, username, email, phoneNumber, password, rememberMe)
+        val authResult = authManager.signUp(fullName, username, email, phoneNumber, password, rememberMe)
+        if (authResult.isFailure) {
+            return authResult
+        }
+
+        viewModelScope.launch {
+            val loginId = username.trim().lowercase()
+            val account = UserAccount(
+                loginId = loginId,
+                displayName = fullName.trim(),
+                username = username.trim(),
+                email = email.trim().lowercase(),
+                phoneNumber = phoneNumber.trim(),
+                passwordHash = password.trim(),
+            )
+            val accountId = userAccountDao.saveAccount(account)
+            val savedAccount = account.copy(id = accountId)
+            saveSessionFromLogin(savedAccount, rememberMe)
+            if (stealthModeActive.value) {
+                toggleStealthMode(false)
+            }
+        }
+
+        return Result.success(Unit)
     }
 
     fun requestPasswordReset(email: String): Result<Unit> {
@@ -312,11 +356,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun signOut() {
         authManager.signOut()
+        sessionStore.clearSession()
+        _currentUserSession.value = UserSession()
         stopVoiceMonitoring()
     }
 
     private fun refreshVoiceMonitoring() {
         val canListen = safetySettings.value.voiceCommandEnabled &&
+            safetySettings.value.audioTriggerEnabled &&
             _permissionStatusMap.value[android.Manifest.permission.RECORD_AUDIO] == true
 
         if (canListen) {

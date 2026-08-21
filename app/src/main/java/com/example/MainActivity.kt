@@ -1,10 +1,14 @@
 package com.example
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,10 +71,30 @@ import com.example.ui.viewmodel.MainViewModel
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+    private val requiredPermissions = arrayOf(
+        Manifest.permission.SEND_SMS,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.CALL_PHONE,
+        Manifest.permission.RECORD_AUDIO
+    )
+
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ -> }
+
+    private fun hasRequiredPermissions(): Boolean = requiredPermissions.all { permission ->
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        if (!hasRequiredPermissions()) {
+            permissionLauncher.launch(requiredPermissions)
+        }
+
         setContent {
             val authState by viewModel.authState.collectAsState()
             val stealthActive by viewModel.stealthModeActive.collectAsState()
@@ -81,6 +105,12 @@ class MainActivity : ComponentActivity() {
                 val layoutParams = window.attributes
                 layoutParams.screenBrightness = if (stealthDarkMode) 0.01f else android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                 window.attributes = layoutParams
+            }
+
+            LaunchedEffect(authState.isAuthenticated) {
+                if (authState.isAuthenticated && stealthActive) {
+                    viewModel.toggleStealthMode(false)
+                }
             }
 
             SilentSignalTheme(darkTheme = stealthDarkMode) {

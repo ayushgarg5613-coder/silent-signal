@@ -376,6 +376,49 @@ fun StealthSettingsScreen(viewModel: MainViewModel) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("SMS dispatch", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    Switch(
+                        checked = settings.smsDispatchEnabled,
+                        onCheckedChange = { viewModel.updateSettings(settings.copy(smsDispatchEnabled = it)) }
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Live location sharing", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    Switch(
+                        checked = settings.locationTrackingEnabled,
+                        onCheckedChange = { viewModel.updateSettings(settings.copy(locationTrackingEnabled = it)) }
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Call escalation", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    Switch(
+                        checked = settings.callEscalationEnabled,
+                        onCheckedChange = { viewModel.updateSettings(settings.copy(callEscalationEnabled = it)) }
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Voice trigger / audio", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    Switch(
+                        checked = settings.audioTriggerEnabled,
+                        onCheckedChange = { viewModel.updateSettings(settings.copy(audioTriggerEnabled = it)) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 PermissionRow("SMS Dispatch", Manifest.permission.SEND_SMS, permissionsMap[Manifest.permission.SEND_SMS] == true)
                 PermissionRow("GPS Location", Manifest.permission.ACCESS_FINE_LOCATION, permissionsMap[Manifest.permission.ACCESS_FINE_LOCATION] == true)
                 PermissionRow("Call Escalation", Manifest.permission.CALL_PHONE, permissionsMap[Manifest.permission.CALL_PHONE] == true)

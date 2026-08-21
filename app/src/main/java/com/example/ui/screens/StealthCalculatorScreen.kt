@@ -12,10 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,6 +39,11 @@ import com.example.ui.theme.DeepSlate800
 import com.example.ui.theme.DeepSlate900
 import com.example.ui.viewmodel.MainViewModel
 
+private val weight: Any
+    get() {
+        TODO()
+    }
+
 @Composable
 fun StealthCalculatorScreen(viewModel: MainViewModel) {
     var displayValue by remember { mutableStateOf("0") }
@@ -50,10 +56,10 @@ fun StealthCalculatorScreen(viewModel: MainViewModel) {
                 pinBuffer = ""
             }
             "C" -> {
-                if (displayValue.length > 1) {
-                    displayValue = displayValue.dropLast(1)
-                } else {
+                if (displayValue.length <= 1) {
                     displayValue = "0"
+                } else {
+                    displayValue = displayValue.dropLast(1)
                 }
                 if (pinBuffer.isNotEmpty()) {
                     pinBuffer = pinBuffer.dropLast(1)
@@ -110,18 +116,36 @@ fun StealthCalculatorScreen(viewModel: MainViewModel) {
                     .fillMaxWidth()
                     .padding(top = 12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Calculate,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Calculator",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Calculate,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Calculator",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = { viewModel.toggleStealthMode(false) },
+                    colors = ButtonDefaults.buttonColors(containerColor = BeaconCyan),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text(
+                        text = "Exit",
+                        color = DeepSlate900,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
             }
 
             // Display Screen

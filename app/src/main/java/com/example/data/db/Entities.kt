@@ -15,10 +15,25 @@ data class EmergencyContact(
     val customNote: String = "Please check on me immediately!"
 )
 
+@Entity(tableName = "user_accounts")
+data class UserAccount(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val loginId: String,
+    val displayName: String,
+    val username: String,
+    val email: String,
+    val phoneNumber: String,
+    val passwordHash: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastLoginAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "alert_logs")
 data class AlertLog(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val accountId: Long = 0,
     val timestamp: Long = System.currentTimeMillis(),
     val triggerType: String, // "SOS Long-Press", "Shake Detected", "Secret Tap Pattern", "Voice Keyword", "Wearable BLE", "Manual Alert"
     val status: String, // "SENT", "QUEUED_OFFLINE", "CANCELLED", "CALL_ESCALATED"

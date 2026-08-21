@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,27 +40,23 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.BeaconCyan
@@ -76,6 +70,9 @@ import com.example.ui.theme.SleekNavy
 import com.example.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private val AuthInputTextColor = Color(0xFF111111)
+private val AuthLabelTextColor = Color(0xFF2B2B2B)
 
 @Composable
 fun AuthScreen(viewModel: MainViewModel) {
@@ -272,14 +269,15 @@ fun AuthScreen(viewModel: MainViewModel) {
                         value = identifier,
                         onValueChange = { identifier = it },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(color = AuthInputTextColor),
                         leadingIcon = {
                             Icon(
                                 imageVector = if (identifier.contains("@")) Icons.Default.Email else Icons.Default.Person,
                                 contentDescription = null
                             )
                         },
-                        label = { Text("Email / Username") },
-                        placeholder = { Text("name@example.com or your username") },
+                        label = { Text("Email / Username", color = AuthLabelTextColor) },
+                        placeholder = { Text("name@example.com or your username", color = AuthLabelTextColor.copy(alpha = 0.65f)) },
                         singleLine = true
                     )
 
@@ -289,6 +287,7 @@ fun AuthScreen(viewModel: MainViewModel) {
                         value = password,
                         onValueChange = { password = it },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(color = AuthInputTextColor),
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                         trailingIcon = {
                             IconButton(onClick = { showPassword = !showPassword }) {
@@ -298,7 +297,7 @@ fun AuthScreen(viewModel: MainViewModel) {
                                 )
                             }
                         },
-                        label = { Text("Password") },
+                        label = { Text("Password", color = AuthLabelTextColor) },
                         singleLine = true,
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
                     )
@@ -372,9 +371,10 @@ fun AuthScreen(viewModel: MainViewModel) {
                         value = fullName,
                         onValueChange = { fullName = it },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(color = AuthInputTextColor),
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                        label = { Text("Full name") },
-                        placeholder = { Text("Enter your name") },
+                        label = { Text("Full name", color = AuthLabelTextColor) },
+                        placeholder = { Text("Enter your name", color = AuthLabelTextColor.copy(alpha = 0.65f)) },
                         singleLine = true
                     )
 
@@ -384,9 +384,10 @@ fun AuthScreen(viewModel: MainViewModel) {
                         value = username,
                         onValueChange = { username = it.lowercase() },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(color = AuthInputTextColor),
                         leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
-                        label = { Text("Username") },
-                        placeholder = { Text("silent.signal") },
+                        label = { Text("Username", color = AuthLabelTextColor) },
+                        placeholder = { Text("silent.signal", color = AuthLabelTextColor.copy(alpha = 0.65f)) },
                         singleLine = true
                     )
 
@@ -396,9 +397,10 @@ fun AuthScreen(viewModel: MainViewModel) {
                         value = email,
                         onValueChange = { email = it },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(color = AuthInputTextColor),
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                        label = { Text("Email") },
-                        placeholder = { Text("name@example.com") },
+                        label = { Text("Email", color = AuthLabelTextColor) },
+                        placeholder = { Text("name@example.com", color = AuthLabelTextColor.copy(alpha = 0.65f)) },
                         singleLine = true
                     )
 
@@ -408,9 +410,10 @@ fun AuthScreen(viewModel: MainViewModel) {
                         value = phoneNumber,
                         onValueChange = { phoneNumber = it },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(color = AuthInputTextColor),
                         leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                        label = { Text("Phone number") },
-                        placeholder = { Text("+1 555 000 1234") },
+                        label = { Text("Phone number", color = AuthLabelTextColor) },
+                        placeholder = { Text("+1 555 000 1234", color = AuthLabelTextColor.copy(alpha = 0.65f)) },
                         singleLine = true
                     )
 
@@ -440,6 +443,7 @@ fun AuthScreen(viewModel: MainViewModel) {
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
                         modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(color = AuthInputTextColor),
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                         trailingIcon = {
                             IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
@@ -449,7 +453,7 @@ fun AuthScreen(viewModel: MainViewModel) {
                                 )
                             }
                         },
-                        label = { Text("Confirm password") },
+                        label = { Text("Confirm password", color = AuthLabelTextColor) },
                         singleLine = true,
                         visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation()
                     )
@@ -690,6 +694,5 @@ fun AuthScreen(viewModel: MainViewModel) {
                 }
             }
         )
-    }
     }
 }

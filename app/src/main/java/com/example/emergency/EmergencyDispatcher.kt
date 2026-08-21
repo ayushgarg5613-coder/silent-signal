@@ -15,18 +15,26 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.telephony.SmsManager
 import androidx.core.app.ActivityCompat
+import com.example.UserSessionStore
 import com.example.data.db.AlertDao
 import com.example.data.db.AlertLog
 import com.example.data.db.ContactDao
 import com.example.data.db.EmergencyContact
+import com.example.data.preferences.UserPreferencesManager
 import com.example.ml.MLContextAnalyzer
+import com.google.android.gms.location.CurrentLocationRequest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 
 class EmergencyDispatcher(
     private val context: Context,
     private val contactDao: ContactDao,
-    private val alertDao: AlertDao
+    private val alertDao: AlertDao,
+    private val sessionStore: UserSessionStore
 ) {
     private val locationManager: LocationManager =
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -47,10 +55,6 @@ class EmergencyDispatcher(
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             try {
-                // Fetch last known location
-                currentLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                    ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-
                 locationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
                     5000L,
@@ -72,21 +76,93 @@ class EmergencyDispatcher(
     }
 
     fun getCurrentLocationCoordinates(): Pair<Double, Double> {
-        val loc = currentLocation
-        return if (loc != null) {
-            Pair(loc.latitude, loc.longitude)
-        } else {
-            // Default realistic fallback coordinates (San Francisco / City Center) with slight live variation
-            val variationLat = (Math.random() - 0.5) * 0.002
-            val variationLng = (Math.random() - 0.5) * 0.002
-            Pair(37.7749 + variationLat, -122.4194 + variationLng)
+        val loc = resolveBestLocation() ?: return Pair(0.0, 0.0)
+        return Pair(loc.latitude, loc.longitude)
+    }
+
+    private fun resolveBestLocation(): Location? {
+        val candidates = mutableListOf<Location>()
+        val hasFine = ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasFine && !hasCoarse) return currentLocation
+
+        if (currentLocation != null) {
+            candidates += currentLocation!!
         }
+
+        val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+        for (provider in providers) {
+            try {
+                val candidate = locationManager.getLastKnownLocation(provider) ?: continue
+                candidates += candidate
+            } catch (_: SecurityException) {
+            }
+        }
+
+        return candidates
+            .filter { it.latitude != 0.0 || it.longitude != 0.0 }
+            .maxByOrNull { it.time }
+    }
+
+    private suspend fun fetchCurrentLiveLocation(): Location? = suspendCancellableCoroutine { continuation ->
+        val hasFine = ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val hasCoarse = ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasFine && !hasCoarse) {
+            continuation.resume(null)
+            return@suspendCancellableCoroutine
+        }
+
+        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+        val cancellationToken = com.google.android.gms.tasks.CancellationTokenSource()
+
+        continuation.invokeOnCancellation { cancellationToken.cancel() }
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellationToken.token)
+            .addOnSuccessListener { location ->
+                if (location == null) {
+                    continuation.resume(null)
+                    return@addOnSuccessListener
+                }
+
+                val now = System.currentTimeMillis()
+                val freshEnough = location.time > 0L && (now - location.time) <= 60_000L
+                val acceptableAccuracy = location.accuracy <= 200f || location.accuracy == 0f
+
+                if (freshEnough && acceptableAccuracy) {
+                    currentLocation = location
+                    continuation.resume(location)
+                } else {
+                    continuation.resume(null)
+                }
+            }
+            .addOnFailureListener {
+                continuation.resume(null)
+            }
+            .addOnCanceledListener {
+                continuation.resume(null)
+            }
     }
 
     suspend fun dispatchAlert(
         triggerType: String,
         movementIntensity: Float = 0f,
-        customNote: String = "I need silent emergency assistance!"
+        customNote: String = "I need silent emergency assistance!",
+        accountId: Long = 0L
     ): AlertLog = withContext(Dispatchers.IO) {
 
         // Step 1: Perform ML Context Analysis
@@ -95,22 +171,38 @@ class EmergencyDispatcher(
             movementIntensity = movementIntensity
         )
 
-        // Step 2: Acquire GPS location & Google Maps Link
-        val (lat, lng) = getCurrentLocationCoordinates()
-        val mapsUrl = "https://maps.google.com/?q=%.6f,%.6f".format(lat, lng)
+        // Step 2: Acquire a fresh, accurate GPS location using FusedLocationProviderClient
+        val settings = UserPreferencesManager(context).settings.value
+        val liveLocation = fetchCurrentLiveLocation() ?: resolveBestLocation()
+        val resolvedLocation = liveLocation ?: currentLocation
+        val lat = resolvedLocation?.latitude ?: 0.0
+        val lng = resolvedLocation?.longitude ?: 0.0
 
-        // Step 3: Query Contacts for Tier 1 & Tier 2 dispatch
-        val contacts = contactDao.getContactsForTier(1) + contactDao.getContactsForTier(2)
-        val primaryContact = contactDao.getPrimaryContact() ?: contacts.firstOrNull()
+        val mapsUrl = if (resolvedLocation != null) {
+            "https://maps.google.com/?q=%.6f,%.6f".format(lat, lng)
+        } else {
+            "Location unavailable. Please enable GPS and location permissions."
+        }
 
-        // Step 4: Build Emergency SMS payload
-        val fullSmsBody = "$customNote\nLive Location: $mapsUrl\n[Risk Level: ${mlAnalysis.confidence} (${mlAnalysis.riskScore}%)]"
+        val contactRecipients = (contactDao.getContactsForTier(1) + contactDao.getContactsForTier(2))
+            .map { it.phoneNumber }
+            .map { it.trim() }
+            .filter { it.isNotBlank() && it.length >= 8 && !it.contains("15550192834") && !it.contains("15550148821") }
+        val recipientNumbers = if (contactRecipients.isEmpty()) listOf("100") else contactRecipients + "100"
+        val primaryContact = contactDao.getPrimaryContact() ?: contactRecipients.firstOrNull()?.let { null }
+
+        val locationMessage = if (settings.locationTrackingEnabled && resolvedLocation != null) {
+            "\nLive Location: $mapsUrl"
+        } else {
+            "\nLive Location: ${if (resolvedLocation == null) "Location unavailable. Enable GPS and location permission." else "Disabled by user settings"}"
+        }
+
+        val fullSmsBody = "$customNote$locationMessage\n[Risk Level: ${mlAnalysis.confidence} (${mlAnalysis.riskScore}%)]"
 
         var isSmsSentSuccess = false
         var recipientCount = 0
 
-        // Attempt SMS dispatch
-        if (contacts.isNotEmpty()) {
+        if (settings.smsDispatchEnabled && recipientNumbers.isNotEmpty()) {
             val hasSmsPermission = ActivityCompat.checkSelfPermission(
                 context,
                 Manifest.permission.SEND_SMS
@@ -125,9 +217,9 @@ class EmergencyDispatcher(
                         SmsManager.getDefault()
                     }
 
-                    for (c in contacts) {
+                    for (number in recipientNumbers) {
                         val parts = smsManager.divideMessage(fullSmsBody)
-                        smsManager.sendMultipartTextMessage(c.phoneNumber, null, parts, null, null)
+                        smsManager.sendMultipartTextMessage(number, null, parts, null, null)
                         recipientCount++
                     }
                     isSmsSentSuccess = true
@@ -137,10 +229,11 @@ class EmergencyDispatcher(
             }
         }
 
-        val status = if (isSmsSentSuccess) "SENT" else if (contacts.isEmpty()) "SENT (Simulated)" else "QUEUED_OFFLINE"
+        val status = if (isSmsSentSuccess) "SENT" else if (recipientNumbers.isEmpty()) "SENT (Simulated)" else "QUEUED_OFFLINE"
 
         // Create Alert Log Entry
         val alert = AlertLog(
+            accountId = accountId,
             triggerType = triggerType,
             status = status,
             riskScore = mlAnalysis.riskScore,
@@ -148,7 +241,7 @@ class EmergencyDispatcher(
             longitude = lng,
             locationAddress = "GPS: %.4f, %.4f".format(lat, lng),
             mapsUrl = mapsUrl,
-            recipientCount = if (recipientCount > 0) recipientCount else contacts.size,
+            recipientCount = if (recipientCount > 0) recipientCount else recipientNumbers.size,
             mlContextNotes = "${mlAnalysis.intentClassification} | ${mlAnalysis.featureBreakdown.joinToString()}"
         )
 
@@ -159,8 +252,8 @@ class EmergencyDispatcher(
         triggerHapticVibration()
 
         // Step 6: Automatic Call Escalation if High Risk & Primary Contact configured
-        if (mlAnalysis.riskScore >= 75 && primaryContact != null) {
-            triggerCallEscalation(primaryContact.phoneNumber)
+        if (settings.callEscalationEnabled && mlAnalysis.riskScore >= 75 && contactRecipients.isNotEmpty()) {
+            triggerCallEscalation(contactRecipients.first())
         }
 
         insertedAlert
