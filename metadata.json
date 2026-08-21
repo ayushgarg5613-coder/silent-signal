@@ -1,0 +1,6 @@
+{
+  "name": "Silent Signal",
+  "description": "Intelligent emergency safety app with discreet long-press SOS, shake detection, gesture patterns, ML intent analysis, SMS dispatching, live GPS link, and stealth disguise mode.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
