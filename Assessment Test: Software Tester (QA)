@@ -1,0 +1,316 @@
+Assessment Test: Software Tester (QA)
+
+1. Registration Testing
+
+Positive Test Cases
+TC-01: Register with valid details
+Test: Enter a valid name, email address, password, and confirm password, then click Register.
+Expected Result: The account should be created successfully and the user should see a success
+message or be taken to the login/dashboard page.
+
+TC-02: Register with a valid email and strong password
+Test: Enter a properly formatted email and a password that meets the application's password
+requirements.
+Expected Result: The registration should be completed successfully.
+Negative Test Cases
+
+TC-03: Register without entering any details
+Test: Leave all registration fields empty and click Register.
+Expected Result: The application should show clear validation messages for the required fields and
+should not create an account.
+
+TC-04: Register with an invalid email address
+Test: Enter an invalid email such as test@ or test.com.
+Expected Result: The application should show an email validation message and should not complete
+registration.
+
+TC-05: Register with an already registered email
+Test: Use an email address that is already present in the system.
+Expected Result: A second account should not be created. The user should receive a clear message
+that the email is already registered.
+
+TC-06: Register with a weak password
+Test: Enter a very short or weak password such as 12345.
+Expected Result: The application should reject it and explain the password requirements.
+
+TC-07: Password and confirm password do not match
+Test: Enter different values in the password and confirm password fields.
+Expected Result: Registration should fail and the user should be told that both passwords must
+match.
+Edge Cases
+
+TC-08: Enter only spaces in required fields
+Test: Enter spaces instead of a real name or email address.
+Expected Result: The application should treat the input as invalid rather than accepting spaces as
+valid data.
+
+TC-09: Enter a very long name or email
+Test: Enter input that is much longer than a normal name or email.
+Expected Result: The application should handle it safely without crashing, breaking the page, or
+storing corrupted data.
+
+TC-10: Enter special characters
+Test: Enter special characters in registration fields where appropriate.
+Expected Result: The application should validate the input correctly and handle it safely.
+
+2. Login Testing
+Positive Test Cases
+TC-11: Login with valid credentials
+Test: Enter a registered email address and the correct password.
+Expected Result: The user should be logged in successfully and taken to the task management page
+or dashboard.
+
+TC-12: Login immediately after registration
+Test: Register a new user and then use the same credentials to log in.
+Expected Result: The newly created user should be able to log in successfully.
+Negative Test Cases
+
+TC-13: Login with an incorrect password
+Test: Enter a valid email address but use the wrong password.
+Expected Result: Login should fail and a suitable error message should be displayed.
+
+TC-14: Login with an unregistered email
+Test: Enter an email address that does not exist in the application.
+Expected Result: The user should not be logged in and should receive an appropriate error message.
+
+TC-15: Login with empty fields
+Test: Leave both email and password empty and click Login.
+Expected Result: Required-field validation messages should be displayed.
+
+
+TC-16: Login with an invalid email format
+Test: Enter an email such as abc@.
+Expected Result: The application should display an email validation error.
+Edge Cases
+
+TC-17: Check password case sensitivity
+Test: Enter the correct password with different uppercase and lowercase characters.
+Expected Result: Login should fail when the password does not exactly match, if the application
+treats passwords as case-sensitive.
+
+TC-18: Multiple incorrect login attempts
+Test: Try to log in repeatedly using an incorrect password.
+Expected Result: The application should handle repeated failures securely and should not reveal
+sensitive information.
+
+TC-19: Refresh after successful login
+Test: Log in successfully and refresh the page.
+Expected Result: The user's session should continue according to the application's expected session
+behavior.
+
+TC-20: Access the task page after logout
+Test: Log out and then try to open the protected task page directly.
+Expected Result: The user should not be able to access protected task functionality after logout.
+
+3. Task Creation Testing
+
+TC-21: Create a task with valid information
+Test: Enter a valid task title and any other required information, then click Create.
+Expected Result: The task should be created successfully and should appear in the task list.
+
+TC-22: Create a task without a required title
+Test: Leave the required task title empty and try to create the task.
+Expected Result: A clear validation message should appear and the task should not be created.
+
+TC-23: Create a task with optional fields empty
+Test: Leave optional fields blank while providing the required information.
+Expected Result: If those fields are optional, the task should still be created successfully.
+
+
+TC-24: Create multiple tasks
+
+Test: Create several different tasks one after another.
+Expected Result: All tasks should be saved and displayed correctly without replacing or losing earlier
+tasks.
+
+TC-25: Create a task with a very long title
+Test: Enter a title at or beyond the expected maximum length.
+Expected Result: The application should handle the limit properly without crashing or damaging the
+layout.
+
+TC-26: Create a task with special characters
+Test: Enter a task containing characters such as &, <, >, quotes, or other special characters.
+Expected Result: The task should be stored and displayed correctly, and the input should be handled
+safely.
+
+4. View Task List Testing
+TC-27: View the task list after login
+Test: Log in and open the task list.
+Expected Result: The logged-in user's tasks should be displayed correctly.
+
+TC-28: View the task list when there are no tasks
+Test: Use a new account with no tasks and open the task list.
+Expected Result: A helpful empty-state message such as 'No tasks found' should be shown instead of
+a broken or confusing screen.
+
+TC-29: Create a task and refresh
+Test: Create a task and then refresh the page.
+Expected Result: The task should still be visible because it should have been saved in the database.
+
+TC-30: Verify that users only see their own tasks
+Test: Create tasks with two different user accounts and compare the task lists.
+Expected Result: Each user should only see their own tasks. One user must not be able to view
+another user's tasks.
+
+TC-31: View a large number of tasks
+Test: Create or load a large number of tasks.
+Expected Result: The list should load correctly without missing, duplicating, or incorrectly displaying
+records.
+
+5. Edit Task Testing
+
+
+TC-32: Edit an existing task
+Test: Open an existing task, change its information, and save it.
+Expected Result: The task should be updated successfully and the new information should be
+displayed.
+
+TC-33: Remove required information while editing
+Test: Edit a task and remove a required value before saving.
+Expected Result: The application should show a validation message and should not save invalid data.
+
+TC-34: Cancel an edit
+Test: Open a task for editing, make a change, and then cancel.
+Expected Result: The original task information should remain unchanged.
+TC-35: Edit with maximum-length input
+Test: Enter data at the maximum allowed length.
+Expected Result: The application should handle the boundary correctly without crashing or
+truncating data unexpectedly.
+TC-36: Refresh after editing
+Test: Edit and save a task, then refresh the page.
+Expected Result: The updated information should still be present after the refresh.
+6. Delete Task Testing
+TC-37: Delete an existing task
+Test: Select an existing task and choose Delete.
+Expected Result: The selected task should be removed from the task list and from the database.
+TC-38: Cancel the delete operation
+Test: If a confirmation message is shown, select Cancel.
+Expected Result: The task should remain unchanged and should not be deleted.
+TC-39: Delete multiple tasks
+Test: Delete more than one task where the application allows it.
+Expected Result: Only the selected tasks should be deleted; all other tasks should remain
+unchanged.
+TC-40: Refresh after deletion
+Test: Delete a task and then refresh the page.
+Expected Result: The deleted task should not appear again.
+TC-41: Try to delete another user's task
+Test: Attempt to delete a task that belongs to a different user.
+Expected Result: The application should block the operation because a user should only manage
+their own tasks.
+
+
+7. Input Validation and Error Handling
+I would also check how the application behaves when the user provides unexpected input or when a
+system dependency such as the server, database, or network is unavailable.
+TC-42: Submit forms with empty required fields
+Test: Submit registration, login, or task forms without completing required fields.
+Expected Result: The application should display clear and useful validation messages.
+
+TC-43: Enter an invalid email format
+Test: Use an invalid email value in registration or login.
+Expected Result: The email should be rejected with a clear validation message.
+TC-44: Enter extremely long input
+Test: Paste a very large amount of text into a field.
+Expected Result: The application should enforce reasonable limits or safely handle the input without
+crashing.
+TC-45: Enter HTML or JavaScript in a task field
+Test: Enter HTML or script content in a task title or description.
+Expected Result: The application should treat it as data and should not execute the script.
+TC-46: Enter malicious database-related input
+Test: Provide database-related malicious input through fields such as email, password, or task data.
+Expected Result: The input should be handled safely. It should not expose database details or allow
+unauthorized database operations.
+TC-47: Database or server becomes unavailable
+Test: Try an operation while the database or server is unavailable.
+Expected Result: The application should show a friendly error message instead of crashing or
+exposing technical details.
+TC-48: Network failure during task creation
+Test: Interrupt the network while creating a task and then retry.
+Expected Result: The user should be informed that the operation failed, and the same task should
+not accidentally be created more than once.
+TC-49: Session expires during a task operation
+Test: Allow the login session to expire and then try to create, edit, or delete a task.
+Expected Result: The application should ask the user to log in again and should not allow an
+unauthorized operation.
+TC-50: Click Create/Submit multiple times
+Test: Click the Create or Submit button several times quickly.
+Expected Result: The application should prevent accidental duplicate submissions and duplicate task
+records.
+
+
+8. Potential Bugs / Risk Areas
+The following are risks I would specifically look for during testing. These are potential issues identified
+from the application's described functionality, not bugs that I have confirmed by executing the
+application.
+
+1. User can see another user's tasks
+Severity: Critical
+Description: There may be a problem with authorization or user filtering that allows one user to see
+another user's tasks.
+Impact: This is a serious privacy and security issue because personal task information could be
+exposed.
+2. Unauthorized users can access task functionality
+Severity: Critical
+Description: A person who is not logged in may be able to directly access task pages or APIs.
+Impact: An unauthorized person could potentially create, edit, or delete data without permission.
+3. Passwords are not handled securely
+Severity: Critical
+Description: There may be a risk that passwords are stored or transmitted in an insecure way.
+Impact: If passwords are exposed, attackers could gain access to user accounts.
+4. SQL Injection vulnerability
+Severity: Critical
+Description: User input may not be safely handled before being used in database queries.
+Impact: An attacker could manipulate database queries, access unauthorized information, or
+damage data.
+5. Cross-Site Scripting (XSS)
+Severity: Major
+Description: Task fields may accept HTML or JavaScript and display it without proper escaping.
+Impact: A malicious script could execute when someone views the task, creating a security risk.
+6. Deleted task appears again after refresh
+Severity: Major
+Description: A task may disappear from the screen after deletion but come back after refreshing.
+Impact: This could mean the deletion was not correctly saved in the database and would lead to data
+inconsistency.
+7. Edited task changes are not saved
+Severity: Major
+Description: The updated task may look correct temporarily but show the old data after a refresh.
+Impact: Users may believe their changes were saved when they were actually lost.
+
+8. Duplicate tasks are created
+Severity: Major
+Description: Clicking Create multiple times quickly may result in the same task being stored more
+than once.
+Impact: This can create duplicate records and make the task list inaccurate.
+9. Application crashes when the database is unavailable
+Severity: Major
+Description: The application may crash or show a technical error when it cannot connect to the
+database.
+Impact: Users may be unable to use the application and may not understand how to recover.
+10. Invalid or empty data is accepted
+Severity: Minor to Major
+Description: The application may accept missing or invalid values for fields that should be required.
+Impact: This can create incomplete or incorrect records and may cause problems in other parts of
+the system.
+9. Overall Testing Approach
+Because the application is close to production, I would not only check whether each feature works in
+the normal flow. I would also focus on security, data accuracy, usability, and how the system behaves
+when something goes wrong.
+1. First, verify the complete registration and login flow.
+2. Check authentication and authorization to make sure only permitted users can access task data.
+3. Test all four main task operations: create, view, edit, and delete.
+4. Test valid, invalid, empty, boundary, and unexpected inputs.
+5. Verify that task information is correctly saved and retrieved from the database.
+6. Make sure one user cannot access or modify another user's tasks.
+7. Test error handling for network, server, and database failures.
+8. Perform basic security testing for issues such as XSS and SQL injection.
+9. Check the application on common browsers and different screen sizes.
+10. Perform regression testing after defects are fixed to make sure existing features still work.
+10. Conclusion
+Before recommending the application for production release, I would make sure that the core
+functionality works reliably and that there are no critical security, authorization, or data-loss issues. I
+would give the highest priority to authentication, authorization, user data isolation, password
+security, and database operations.
+In my view, good QA is not only about checking whether the application works when everything goes
+as expected. It is also about checking how the application behaves when users enter incorrect
+information, perform unexpected actions, submit requests repeatedly, or when a system dependency
+fails. The goal is to make sure the application is reliable, secure, and easy for users to work with
